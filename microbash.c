@@ -1,4 +1,3 @@
-#error Please read the accompanying microbash.pdf before hacking this source code (and removing this line).
 /*
  * Micro-bash v2.0
  *
@@ -198,6 +197,22 @@ check_t check_redirections(const line_t * const l)
 	 * and return CHECK_OK if everything is ok, CHECK_FAILED otherwise
 	 */
 	/*** TO BE DONE START ***/
+	if(l->n_commands == 1) {
+		return CHECK_OK;
+		}
+
+	if(l->commands[0]->out_pathname != 0)
+		return CHECK_FAILED;
+	int i=1;
+	while(i<l->n_commands){
+		if(l->commands[i]->out_pathname != 0 || l->commands[i]->in_pathname != 0)
+		return CHECK_FAILED;
+		i++;
+	}
+
+	if(l->commands[i]->in_pathname != 0)
+	return CHECK_FAILED;
+
 	/*** TO BE DONE END ***/
 	return CHECK_OK;
 }
@@ -212,6 +227,23 @@ check_t check_cd(const line_t * const l)
 	 * and return CHECK_OK if everything is ok, CHECK_FAILED otherwise
 	 */
 	/*** TO BE DONE START ***/
+
+	if(l->n_commands > 1) {
+		printf("errore: cd deve essere usato da solo\n");
+		return CHECK_FAILED;
+		}
+
+	if(l->commands[0]->out_pathname != 0 || l->commands[0]->in_pathname != 0 ){
+		printf("errore: il comando cd non supporta la redirezione\n");
+		return CHECK_FAILED;
+	}
+
+	if(l->commands[0]->n_args > 2){
+		printf("errore: cd ha un solo argomento\n" );
+		return CHECK_FAILED;
+	}
+
+
 	/*** TO BE DONE END ***/
 	return CHECK_OK;
 }
@@ -290,12 +322,12 @@ void execute_line(const line_t * const l)
 			/*** TO BE DONE START ***/
 			/*** TO BE DONE END ***/
 		} else if (a != (l->n_commands - 1)) { /* unless we're processing the last command, we need to connect the current command and the next one with a pipe */
-			int fds[2];
+			//int fds[2];
 			/* Create a pipe in fds, and set FD_CLOEXEC in both file-descriptor flags */
 			/*** TO BE DONE START ***/
 			/*** TO BE DONE END ***/
-			curr_stdout = fds[1];
-			next_stdin = fds[0];
+			//curr_stdout = fds[1];
+			//next_stdin = fds[0];
 		}
 		run_child(c, curr_stdin, curr_stdout);
 		close_if_needed(curr_stdin);
@@ -327,6 +359,9 @@ int main()
 		 * The memory area must be allocated (directly or indirectly) via malloc.
 		 */
 		/*** TO BE DONE START ***/
+
+		pwd = getcwd(NULL,0);
+
 		/*** TO BE DONE END ***/
 		pwd = my_realloc(pwd, strlen(pwd) + prompt_suffix_len + 1);
 		if (!pwd)
