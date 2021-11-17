@@ -31,17 +31,11 @@ void fatal(const char * const msg)
 	exit(EXIT_FAILURE);
 }
 
-void fatal_errno(const char * const msg)
-{
-	perror(msg);
-	exit(EXIT_FAILURE);
-}
-
 void *my_malloc(size_t size)
 {
 	void *rv = malloc(size);
 	if (!rv)
-		fatal_errno("my_malloc");
+		fatal("malloc: cannot allocate memory");
 	return rv;
 }
 
@@ -49,7 +43,7 @@ void *my_realloc(void *ptr, size_t size)
 {
 	void *rv = realloc(ptr, size);
 	if (!rv)
-		fatal_errno("my_realloc");
+		fatal("realloc: cannot allocate memory");
 	return rv;
 }
 
@@ -57,7 +51,7 @@ char *my_strdup(char *ptr)
 {
 	char *rv = strdup(ptr);
 	if (!rv)
-		fatal_errno("my_strdup");
+		fatal("strdup: cannot allocate memory");
 	return rv;
 }
 
@@ -249,7 +243,7 @@ check_t check_cd(const line_t * const l)
 		return CHECK_FAILED;
 	}
 
-	
+
 	/*** TO BE DONE END ***/
 	return CHECK_OK;
 }
@@ -292,9 +286,6 @@ void change_current_directory(char *newdir)
 	 * (printing an appropriate error message if the syscall fails)
 	 */
 	/*** TO BE DONE START ***/
-
-	if(chdir(newdir)==-1) fatal_errno("Errore change directory"); // da rivedere
-
 	/*** TO BE DONE END ***/
 }
 
@@ -331,12 +322,12 @@ void execute_line(const line_t * const l)
 			/*** TO BE DONE START ***/
 			/*** TO BE DONE END ***/
 		} else if (a != (l->n_commands - 1)) { /* unless we're processing the last command, we need to connect the current command and the next one with a pipe */
-			int fds[2];
+			//int fds[2];
 			/* Create a pipe in fds, and set FD_CLOEXEC in both file-descriptor flags */
 			/*** TO BE DONE START ***/
 			/*** TO BE DONE END ***/
-			curr_stdout = fds[1];
-			next_stdin = fds[0];
+			//curr_stdout = fds[1];
+			//next_stdin = fds[0];
 		}
 		run_child(c, curr_stdin, curr_stdout);
 		close_if_needed(curr_stdin);
@@ -373,6 +364,8 @@ int main()
 
 		/*** TO BE DONE END ***/
 		pwd = my_realloc(pwd, strlen(pwd) + prompt_suffix_len + 1);
+		if (!pwd)
+			fatal("Cannot allocate prompt");
 		strcat(pwd, prompt_suffix);
 		char * const line = readline(pwd);
 		free(pwd);
