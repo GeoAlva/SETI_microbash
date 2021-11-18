@@ -267,6 +267,14 @@ void wait_for_children()
 	 * Similarly, if a child is killed by a signal, then you should print a message specifying its PID, signal number and name.
 	 */
 	/*** TO BE DONE START ***/
+	int status=0;
+	if(wait(&status)==-1) perror("Errore wait");
+	if (WIFEXITED(status)){
+		if(WEXITSTATUS(status!=0))
+        	printf("Exit status: %d\n", WEXITSTATUS(status));}
+    if (WIFSIGNALED(status)){
+		if(WTERMSIG(status)!=0)
+        psignal(WTERMSIG(status), "Exit signal");}
 	/*** TO BE DONE END ***/
 }
 
@@ -298,12 +306,6 @@ void run_child(const command_t * const c, int c_stdin, int c_stdout)
 		redirect(c_stdout,STDOUT_FILENO);
 		if(execvp(c->args[0],c->args) ==-1) perror("Errore in run_child:");
 	}
-
-
-
-
-
-
 	/*** TO BE DONE END ***/
 }
 
