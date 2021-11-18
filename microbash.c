@@ -215,14 +215,15 @@ check_t check_redirections(const line_t * const l)
 
 	if(l->commands[0]->out_pathname != 0)
 		return CHECK_FAILED;
+
 	int i=1;
-	while(i<l->n_commands){
+	while(i<l->n_commands-1){
 		if(l->commands[i]->out_pathname != 0 || l->commands[i]->in_pathname != 0)
 		return CHECK_FAILED;
-		i++;
+		++i;
 	}
 
-	if(l->commands[i-1]->in_pathname != 0)
+	if(l->commands[l->n_commands-1]->in_pathname != 0)
 	return CHECK_FAILED;
 
 	/*** TO BE DONE END ***/
@@ -268,8 +269,13 @@ void wait_for_children()
 	 * Similarly, if a child is killed by a signal, then you should print a message specifying its PID, signal number and name.
 	 */
 	/*** TO BE DONE START ***/
-	int status=0;
-	if(wait(&status)==-1) perror("Errore wait");
+	int status=0;		
+	for(;;){
+		if(wait(&status) == -1) break;
+	}
+
+	
+	//if(wait(&status)==-1) perror("Errore wait");
 	if (WIFEXITED(status)){
 		if(WEXITSTATUS(status!=0))
         	printf("Exit status: %d\n", WEXITSTATUS(status));}
@@ -304,6 +310,8 @@ void run_child(const command_t * const c, int c_stdin, int c_stdout)
 	/*** TO BE DONE START ***/
 	
 	pid_t p=fork();
+
+	if(p==-1)fatal_errno("fork:");
 
 	if(p==0){
 		redirect(c_stdin,STDIN_FILENO);
