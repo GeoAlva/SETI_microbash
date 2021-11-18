@@ -61,7 +61,6 @@ char *my_strdup(char *ptr)
 	return rv;
 }
 
-#define DEBUG
 #define malloc I_really_should_not_be_using_a_bare_malloc
 #define realloc I_really_should_not_be_using_a_bare_realloc
 #define strdup I_really_should_not_be_using_a_bare_strdup
