@@ -87,6 +87,7 @@ void free_command(command_t * const c)
 {
 	assert(c==0 || c->n_args==0 || (c->n_args > 0 && c->args[c->n_args] == 0)); /* sanity-check: if c is not null, then it is either empty (in case of parsing error) or its args are properly NULL-terminated */
 	/*** TO BE DONE START ***/
+	free(c);
 	/*** TO BE DONE END ***/
 }
 
@@ -94,6 +95,7 @@ void free_line(line_t * const l)
 {
 	assert(l==0 || l->n_commands>=0); /* sanity-check */
 	/*** TO BE DONE START ***/
+	free(l);
 	/*** TO BE DONE END ***/
 }
 
@@ -157,6 +159,9 @@ command_t *parse_cmd(char * const cmdstr)
 			if (*tmp=='$') {
 				/* Make tmp point to the value of the corresponding environment variable, if any, or the empty string otherwise */
 				/*** TO BE DONE START ***/
+
+				tmp=getenv(my_strdup(tmp+1));
+
 				/*** TO BE DONE END ***/
 			}
 			result->args[result->n_args++] = my_strdup(tmp);
@@ -216,7 +221,7 @@ check_t check_redirections(const line_t * const l)
 		i++;
 	}
 
-	if(l->commands[i]->in_pathname != 0)
+	if(l->commands[i-1]->in_pathname != 0)
 	return CHECK_FAILED;
 
 	/*** TO BE DONE END ***/
@@ -234,21 +239,22 @@ check_t check_cd(const line_t * const l)
 	 */
 	/*** TO BE DONE START ***/
 
-	if(l->n_commands > 1) {
-		printf("errore: cd deve essere usato da solo\n");
-		return CHECK_FAILED;
+	if(l->commands[0]->args[0]==CD){
+		if(l->n_commands > 1) {
+			printf("errore: cd deve essere usato da solo\n");
+			return CHECK_FAILED;
+			}
+
+		if(l->commands[0]->out_pathname != 0 || l->commands[0]->in_pathname != 0 ){
+			printf("errore: il comando cd non supporta la redirezione\n");
+			return CHECK_FAILED;
 		}
 
-	if(l->commands[0]->out_pathname != 0 || l->commands[0]->in_pathname != 0 ){
-		printf("errore: il comando cd non supporta la redirezione\n");
-		return CHECK_FAILED;
+		if(l->commands[0]->n_args > 2){
+			printf("errore: cd ha un solo argomento\n" );
+			return CHECK_FAILED;
+		}
 	}
-
-	if(l->commands[0]->n_args > 2){
-		printf("errore: cd ha un solo argomento\n" );
-		return CHECK_FAILED;
-	}
-
 	
 	/*** TO BE DONE END ***/
 	return CHECK_OK;
@@ -270,6 +276,7 @@ void redirect(int from_fd, int to_fd)
 	 * That is, use dup/dup2/close to make to_fd equivalent to the original from_fd, and then close from_fd
 	 */
 	/*** TO BE DONE START ***/
+	if(from_fd!=NO_REDIR) dup2(from_fd,to_fd);
 	/*** TO BE DONE END ***/
 }
 
@@ -283,6 +290,20 @@ void run_child(const command_t * const c, int c_stdin, int c_stdout)
 	 * (printing error messages in case of failure, obviously)
 	 */
 	/*** TO BE DONE START ***/
+	
+	pid_t p=fork();
+
+	if(p==0){
+		redirect(c_stdin,STDIN_FILENO);
+		redirect(c_stdout,STDOUT_FILENO);
+		if(execvp(c->args[0],c->args) ==-1) perror("Errore in run_child:");
+	}
+
+
+
+
+
+
 	/*** TO BE DONE END ***/
 }
 
@@ -293,7 +314,7 @@ void change_current_directory(char *newdir)
 	 */
 	/*** TO BE DONE START ***/
 
-	if(chdir(newdir)==-1) fatal_errno("Errore change directory"); // da rivedere
+	if(chdir(newdir)==-1) perror("Errore:");
 
 	/*** TO BE DONE END ***/
 }
@@ -322,6 +343,8 @@ void execute_line(const line_t * const l)
 			/* Open c->in_pathname and assign the file-descriptor to curr_stdin
 			 * (handling error cases) */
 			/*** TO BE DONE START ***/
+			curr_stdin=open(c->in_pathname,O_RDONLY);
+			if(curr_stdin==-1) perror("Errore open(in) in execute_line:");
 			/*** TO BE DONE END ***/
 		}
 		if (c->out_pathname) {
@@ -329,11 +352,16 @@ void execute_line(const line_t * const l)
 			/* Open c->out_pathname and assign the file-descriptor to curr_stdout
 			 * (handling error cases) */
 			/*** TO BE DONE START ***/
+			curr_stdout=open(c->out_pathname,O_CREAT,O_RDWR);
+			if(curr_stdin==-1) perror("Errore open(out) in execute_line:");
 			/*** TO BE DONE END ***/
 		} else if (a != (l->n_commands - 1)) { /* unless we're processing the last command, we need to connect the current command and the next one with a pipe */
 			int fds[2];
 			/* Create a pipe in fds, and set FD_CLOEXEC in both file-descriptor flags */
 			/*** TO BE DONE START ***/
+			if(pipe(fds)==-1)perror("Errore:");
+			if(fcntl(fds[0],F_SETFD,FD_CLOEXEC)==-1) perror("Errore nel set di FD_CLOEXEC");
+			if(fcntl(fds[1],F_SETFD,FD_CLOEXEC)==-1) perror("Errore nel set di FD_CLOEXEC");
 			/*** TO BE DONE END ***/
 			curr_stdout = fds[1];
 			next_stdin = fds[0];
