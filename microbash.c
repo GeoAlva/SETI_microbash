@@ -213,19 +213,24 @@ check_t check_redirections(const line_t * const l)
 		return CHECK_OK;
 		}
 
-	if(l->commands[0]->out_pathname != 0)
+	if(l->commands[0]->out_pathname != 0){
+		printf("Il primo comando non può avere redirezione dell'output\n");
 		return CHECK_FAILED;
+	}
 
 	int i=1;
 	while(i<l->n_commands-1){
-		if(l->commands[i]->out_pathname != 0 || l->commands[i]->in_pathname != 0)
+		if(l->commands[i]->out_pathname != 0 || l->commands[i]->in_pathname != 0){
+		printf("Solo il primo e l'ultimo comando possono avere la redirezione\n");
 		return CHECK_FAILED;
+		}
 		++i;
 	}
 
-	if(l->commands[l->n_commands-1]->in_pathname != 0)
+	if(l->commands[l->n_commands-1]->in_pathname != 0){
+		printf("L'ultimo comando non può avere redirezione dell'input\n");	
 	return CHECK_FAILED;
-
+	}
 	/*** TO BE DONE END ***/
 	return CHECK_OK;
 }
@@ -240,8 +245,13 @@ check_t check_cd(const line_t * const l)
 	 * and return CHECK_OK if everything is ok, CHECK_FAILED otherwise
 	 */
 	/*** TO BE DONE START ***/
+	int i=0;
+	while(i<l->n_commands-1){
+		if(l->commands[i]->args[0]==CD)
+		return CHECK_FAILED;
+		++i;
+	}
 
-	if(l->commands[0]->args[0]==CD){
 		if(l->n_commands > 1) {
 			printf("errore: cd deve essere usato da solo\n");
 			return CHECK_FAILED;
@@ -255,7 +265,6 @@ check_t check_cd(const line_t * const l)
 		if(l->commands[0]->n_args > 2){
 			printf("errore: cd ha un solo argomento\n" );
 			return CHECK_FAILED;
-		}
 	}
 	
 	/*** TO BE DONE END ***/
@@ -374,7 +383,6 @@ void execute_line(const line_t * const l)
 			/* Create a pipe in fds, and set FD_CLOEXEC in both file-descriptor flags */
 			/*** TO BE DONE START ***/
 			if(pipe(fds)==-1)perror("Errore:");
-			printf("effettuo pipe");
 			if(fcntl(fds[0],F_SETFD,FD_CLOEXEC)==-1) perror("Errore nel set di FD_CLOEXEC");
 			if(fcntl(fds[1],F_SETFD,FD_CLOEXEC)==-1) perror("Errore nel set di FD_CLOEXEC");
 			/*** TO BE DONE END ***/
