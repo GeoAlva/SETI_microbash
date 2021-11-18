@@ -61,6 +61,7 @@ char *my_strdup(char *ptr)
 	return rv;
 }
 
+#define DEBUG
 #define malloc I_really_should_not_be_using_a_bare_malloc
 #define realloc I_really_should_not_be_using_a_bare_realloc
 #define strdup I_really_should_not_be_using_a_bare_strdup
@@ -284,7 +285,10 @@ void redirect(int from_fd, int to_fd)
 	 * That is, use dup/dup2/close to make to_fd equivalent to the original from_fd, and then close from_fd
 	 */
 	/*** TO BE DONE START ***/
-	if(from_fd!=NO_REDIR) dup2(from_fd,to_fd);
+	if(from_fd!=NO_REDIR) {
+		dup2(from_fd,to_fd);
+		close(from_fd);
+	}
 	/*** TO BE DONE END ***/
 }
 
@@ -354,14 +358,15 @@ void execute_line(const line_t * const l)
 			/* Open c->out_pathname and assign the file-descriptor to curr_stdout
 			 * (handling error cases) */
 			/*** TO BE DONE START ***/
-			curr_stdout=open(c->out_pathname,O_CREAT,O_RDWR);
-			if(curr_stdin==-1) perror("Errore open(out) in execute_line:");
+			curr_stdout=open(c->out_pathname,O_RDWR | O_CREAT , 0666);
+			if(curr_stdout==-1) perror("Errore open(out) in execute_line:");
 			/*** TO BE DONE END ***/
 		} else if (a != (l->n_commands - 1)) { /* unless we're processing the last command, we need to connect the current command and the next one with a pipe */
 			int fds[2];
 			/* Create a pipe in fds, and set FD_CLOEXEC in both file-descriptor flags */
 			/*** TO BE DONE START ***/
 			if(pipe(fds)==-1)perror("Errore:");
+			printf("effettuo pipe");
 			if(fcntl(fds[0],F_SETFD,FD_CLOEXEC)==-1) perror("Errore nel set di FD_CLOEXEC");
 			if(fcntl(fds[1],F_SETFD,FD_CLOEXEC)==-1) perror("Errore nel set di FD_CLOEXEC");
 			/*** TO BE DONE END ***/
