@@ -87,6 +87,12 @@ void free_command(command_t * const c)
 {
 	assert(c==0 || c->n_args==0 || (c->n_args > 0 && c->args[c->n_args] == 0)); /* sanity-check: if c is not null, then it is either empty (in case of parsing error) or its args are properly NULL-terminated */
 	/*** TO BE DONE START ***/
+	for(int i = 0; i<c->n_args; i++){
+		free(c->args[i]);
+	}
+	free(c->args);
+	free(c->out_pathname);
+	free(c->in_pathname);
 	free(c);
 	/*** TO BE DONE END ***/
 }
@@ -95,6 +101,10 @@ void free_line(line_t * const l)
 {
 	assert(l==0 || l->n_commands>=0); /* sanity-check */
 	/*** TO BE DONE START ***/
+	for(int i = 0; i<l->n_commands; i++){
+		free_command(l->commands[i]);
+	}
+	free(l->commands);
 	free(l);
 	/*** TO BE DONE END ***/
 }
@@ -160,7 +170,9 @@ command_t *parse_cmd(char * const cmdstr)
 				/* Make tmp point to the value of the corresponding environment variable, if any, or the empty string otherwise */
 				/*** TO BE DONE START ***/
 
-				tmp=getenv(my_strdup(tmp+1));
+				char* aux = getenv(my_strdup(tmp+1));
+				if(aux == NULL) tmp = "";
+				else tmp = aux;
 
 				/*** TO BE DONE END ***/
 			}
@@ -244,28 +256,43 @@ check_t check_cd(const line_t * const l)
 	 * and return CHECK_OK if everything is ok, CHECK_FAILED otherwise
 	 */
 	/*** TO BE DONE START ***/
-	int i=0;
-	while(i<l->n_commands-1){
-		if(l->commands[i]->args[0]==CD)
-		return CHECK_FAILED;
-		++i;
-	}
-
+	
+		if(strcmp(CD, l->commands[0]->args[0])==0){
 		if(l->n_commands > 1) {
-			printf("errore: cd deve essere usato da solo\n");
-			return CHECK_FAILED;
-			}
-
-		if(l->commands[0]->out_pathname != 0 || l->commands[0]->in_pathname != 0 ){
-			printf("errore: il comando cd non supporta la redirezione\n");
-			return CHECK_FAILED;
+		printf("errore: cd deve essere usato da solo\n");
+		return CHECK_FAILED;
 		}
 
-		if(l->commands[0]->n_args > 2){
-			printf("errore: cd ha un solo argomento\n" );
-			return CHECK_FAILED;
-	}
-	
+
+
+		if(l->commands[0]->out_pathname != 0 || l->commands[0]->in_pathname != 0 ){
+		printf("errore: il comando cd non supporta la redirezione\n");
+		return CHECK_FAILED;
+		}
+
+
+
+		if(l->commands[0]->n_args == 1){
+		printf("errore: cd ha un argomento\n" );
+		return CHECK_FAILED;
+		}
+
+
+
+		if(l->commands[0]->n_args >= 3){
+		printf("errore: cd ha un solo argomento\n" );
+		return CHECK_FAILED;
+		}
+		}
+
+
+
+		for(int i = 1; i<l->n_commands; i++){
+		if(strcmp(CD, l->commands[i]->args[0])==0) {
+		printf("errore: cd solo in prima posizione\n" );
+		return CHECK_FAILED;
+		}
+		}
 	/*** TO BE DONE END ***/
 	return CHECK_OK;
 }
@@ -282,14 +309,11 @@ void wait_for_children()
 		if(wait(&status) == -1) break;
 	}
 
-	
-	//if(wait(&status)==-1) perror("Errore wait");
-	if (WIFEXITED(status)){
-		if(WEXITSTATUS(status!=0))
-        	printf("Exit status: %d\n", WEXITSTATUS(status));}
-    if (WIFSIGNALED(status)){
-		if(WTERMSIG(status)!=0)
-        psignal(WTERMSIG(status), "Exit signal");}
+	if (WIFEXITED(status) && WEXITSTATUS(status!=0))
+        	printf("Exit status: %d\n", WEXITSTATUS(status));
+			
+    if (WIFSIGNALED(status) && WTERMSIG(status)!=0)
+        psignal(WTERMSIG(status), "Exit signal");
 	/*** TO BE DONE END ***/
 }
 
@@ -300,8 +324,9 @@ void redirect(int from_fd, int to_fd)
 	 */
 	/*** TO BE DONE START ***/
 	if(from_fd!=NO_REDIR) {
-		dup2(from_fd,to_fd);
-		close(from_fd);
+		if(dup2(from_fd,to_fd)==-1) perror("Cannot Dup()");
+
+		if(close(from_fd)==-1) perror("Cannot close fd");
 	}
 	/*** TO BE DONE END ***/
 }
@@ -316,7 +341,6 @@ void run_child(const command_t * const c, int c_stdin, int c_stdout)
 	 * (printing error messages in case of failure, obviously)
 	 */
 	/*** TO BE DONE START ***/
-	
 	pid_t p=fork();
 
 	if(p==-1)fatal_errno("fork:");
@@ -324,7 +348,7 @@ void run_child(const command_t * const c, int c_stdin, int c_stdout)
 	if(p==0){
 		redirect(c_stdin,STDIN_FILENO);
 		redirect(c_stdout,STDOUT_FILENO);
-		if(execvp(c->args[0],c->args) ==-1) perror("Errore in run_child:");
+		if(execvp(c->args[0],c->args) ==-1) fatal_errno("Exec error");
 	}
 	/*** TO BE DONE END ***/
 }
@@ -392,7 +416,7 @@ void execute_line(const line_t * const l)
 		close_if_needed(curr_stdin);
 		close_if_needed(curr_stdout);
 	}
-	wait_for_children();
+	 wait_for_children();
 }
 
 void execute(char * const line)
